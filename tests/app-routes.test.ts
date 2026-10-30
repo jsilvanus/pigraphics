@@ -100,6 +100,35 @@ describe("PiGraphics API Integration", () => {
       assert.equal(atemJson.ok, true);
       assert.equal(atemJson.slot, 7);
 
+      // 6b. Push Canva graphic with DVE Flying Key
+      const canvaPushRes = await app.inject({
+        method: "POST",
+        url: "/api/v1/graphics/canva/push",
+        payload: {
+          title: "Sunday Sermon Lower Third",
+          movement: "fly-left",
+          slot: 8,
+          mediaPlayer: 1,
+          keyer: "usk",
+          usk: 1,
+          autoHideMs: 7000,
+        },
+      });
+      assert.equal(canvaPushRes.statusCode, 200);
+      const canvaJson = JSON.parse(canvaPushRes.body);
+      assert.equal(canvaJson.ok, true);
+      assert.equal(canvaJson.slot, 8);
+      assert.equal(canvaJson.movement, "fly-left");
+      assert.equal(canvaJson.keyer, "usk");
+
+      // 6c. Take Canva graphic off air
+      const offAirRes = await app.inject({
+        method: "POST",
+        url: "/api/v1/graphics/canva/off-air",
+        payload: { keyer: "usk", index: 1 },
+      });
+      assert.equal(offAirRes.statusCode, 200);
+
       // 7. Hide graphic
       const hideRes = await app.inject({
         method: "POST",

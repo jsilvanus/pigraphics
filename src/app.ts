@@ -15,6 +15,7 @@ import { eventRoutes } from "./routes/event-routes.js";
 import { assetRoutes } from "./routes/asset-routes.js";
 import { switcherRoutes } from "./routes/switcher-routes.js";
 import { streamRoutes } from "./routes/stream-routes.js";
+import { canvaRoutes } from "./routes/canva-routes.js";
 
 export interface AppDependencies {
   config: Config;
@@ -95,6 +96,7 @@ export function buildApp(deps: AppDependencies): FastifyInstance {
   void app.register(assetRoutes(assetStore));
   void app.register(switcherRoutes(atemClient));
   void app.register(streamRoutes(fleetSupervisor));
+  void app.register(canvaRoutes(atemClient));
 
   // Attach services to Fastify instance for lifecycle management
   app.decorate("gatewayClient", gatewayClient);

@@ -206,3 +206,54 @@ paths:
       responses:
         "200":
           description: Stream stopped
+  /api/v1/graphics/canva/push:
+    post:
+      summary: Push Canva graphic with ATEM Flying Key
+      description: Uploads PNG graphic to ATEM Media Pool and executes a Flying Key transition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                image:
+                  type: string
+                imageUrl:
+                  type: string
+                movement:
+                  type: string
+                  enum: [fly-left, fly-right, fly-bottom, fly-top, zoom, dissolve, cut]
+                autoHideMs:
+                  type: number
+                slot:
+                  type: number
+                mediaPlayer:
+                  type: number
+                keyer:
+                  type: string
+                  enum: [usk, dsk]
+                usk:
+                  type: number
+      responses:
+        "200":
+          description: Graphic uploaded and flown on air
+  /api/v1/graphics/canva/off-air:
+    post:
+      summary: Take active Canva graphic keyer off air
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                keyer:
+                  type: string
+                  enum: [usk, dsk]
+                index:
+                  type: number
+      responses:
+        "200":
+          description: Keyer taken off air

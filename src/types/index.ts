@@ -107,8 +107,43 @@ export interface AtemPushOptions {
   slot?: number | undefined; // Graphics pool slot 7..24
   mediaPlayer?: number | undefined; // 1 or 2
   dsk?: number | undefined; // 1..4
+  usk?: number | undefined; // 1..4
+  keyer?: "usk" | "dsk" | undefined;
+  movement?: GraphicMovement | undefined;
+  autoHideMs?: number | undefined;
   autoOnAir?: boolean | undefined;
   transition?: "cut" | "auto" | "tie" | undefined;
+}
+
+export type GraphicMovement =
+  | "cut"
+  | "dissolve"
+  | "fly-left"
+  | "fly-right"
+  | "fly-bottom"
+  | "fly-top"
+  | "zoom";
+
+export interface CanvaGraphicPushOptions {
+  title?: string | undefined;
+  image?: string | undefined; // base64 or data URL
+  imageUrl?: string | undefined; // external or internal URL
+  movement?: GraphicMovement | undefined;
+  autoHideMs?: number | undefined;
+  slot?: number | undefined;
+  mediaPlayer?: number | undefined;
+  keyer?: "usk" | "dsk" | undefined;
+  usk?: number | undefined;
+}
+
+export interface CanvaGraphicPushResult {
+  ok: boolean;
+  title: string;
+  slot: number;
+  mediaPlayer: number;
+  movement: GraphicMovement;
+  keyer: "usk" | "dsk";
+  autoHideMs?: number | undefined;
 }
 
 export interface GatewayActionPayload {
@@ -134,6 +169,7 @@ export type GraphicsEventType =
   | "graphics.bindings_updated"
   | "graphics.stream_status"
   | "graphics.atem_pushed"
+  | "graphics.canva_pushed"
   | "graphics.template_saved";
 
 export interface GraphicsEvent<T = unknown> {

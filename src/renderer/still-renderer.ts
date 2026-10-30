@@ -102,6 +102,48 @@ export async function renderTemplateToRgbaStill(
 }
 
 /**
+ * Converts a PNG image buffer to a 1920x1080 raw RGBA buffer suitable for ATEM Media Pool.
+ */
+export async function pngBufferToRgba(
+  pngBuffer: Buffer,
+  width = 1920,
+  height = 1080,
+  ffmpegPath = process.env.FFMPEG_PATH || "ffmpeg"
+): Promise<Buffer> {
+  return new Promise((resolve) => {
+    try {
+      const ff = spawn(ffmpegPath, [
+        "-hide_banner",
+        "-loglevel", "error",
+        "-i", "pipe:0",
+        "-vf", `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=0x00000000`,
+        "-vframes", "1",
+        "-f", "rawvideo",
+        "-pix_fmt", "rgba",
+        "pipe:1",
+      ]);
+
+      const chunks: Buffer[] = [];
+      ff.stdout.on("data", (d) => chunks.push(d));
+      ff.on("close", (code) => {
+        if (code === 0 && chunks.length > 0) {
+          resolve(Buffer.concat(chunks));
+        } else {
+          resolve(createSyntheticRgbaStill(width, height));
+        }
+      });
+      ff.on("error", () => {
+        resolve(createSyntheticRgbaStill(width, height));
+      });
+      ff.stdin.write(pngBuffer);
+      ff.stdin.end();
+    } catch {
+      resolve(createSyntheticRgbaStill(width, height));
+    }
+  });
+}
+
+/**
  * Creates a valid, transparent RGBA buffer (width * height * 4 bytes).
  * Used when no external headless browser / ffmpeg is available.
  */
