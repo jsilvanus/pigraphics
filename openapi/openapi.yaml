@@ -1,0 +1,208 @@
+openapi: 3.0.3
+info:
+  title: PiGraphics API
+  description: Broadcast graphics engine and coordination service for the Pi Ecosystem
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      summary: Service health check
+      responses:
+        "200":
+          description: Service is healthy
+  /api/v1/status:
+    get:
+      summary: Service status overview
+      responses:
+        "200":
+          description: Overall status
+  /api/v1/graphics/templates:
+    get:
+      summary: List all graphic templates
+      responses:
+        "200":
+          description: List of templates
+    post:
+      summary: Create or update graphic template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Template created/updated
+  /api/v1/graphics/templates/{id}:
+    get:
+      summary: Get template by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Template detail
+        "404":
+          description: Template not found
+    delete:
+      summary: Delete template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Template deleted
+  /api/v1/graphics/active:
+    get:
+      summary: List active on-air graphic instances
+      responses:
+        "200":
+          description: Active graphics list
+  /api/v1/graphics/active/show:
+    post:
+      summary: Show a graphic on air
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [templateId]
+              properties:
+                templateId:
+                  type: string
+                instanceId:
+                  type: string
+                bindings:
+                  type: object
+                autoHideMs:
+                  type: number
+      responses:
+        "200":
+          description: Graphic activated
+  /api/v1/graphics/active/hide/{instanceId}:
+    post:
+      summary: Hide an active graphic instance
+      parameters:
+        - name: instanceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Graphic hidden
+  /api/v1/graphics/active/clear:
+    post:
+      summary: Clear all graphics from air
+      responses:
+        "200":
+          description: All graphics cleared
+  /api/v1/graphics/bindings:
+    get:
+      summary: Get current global data bindings
+      responses:
+        "200":
+          description: Bindings key-value dictionary
+    post:
+      summary: Update global data bindings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bindings:
+                  type: object
+      responses:
+        "200":
+          description: Bindings updated
+  /display:
+    get:
+      summary: Real-time broadcast HTML display page
+      parameters:
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum: [single-chroma, single-luma, dual-fill-key]
+        - name: keyColor
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Standalone HTML page with CSS animations and live SSE subscriber
+          content:
+            text/html:
+              schema:
+                type: string
+  /api/v1/graphics/events:
+    get:
+      summary: Server-Sent Events stream for graphics updates
+      responses:
+        "200":
+          description: Real-time SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /api/v1/graphics/atem/push:
+    post:
+      summary: Render template to still, upload to ATEM slot (7..24), route Media Player & trigger DSK
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [templateId]
+              properties:
+                templateId:
+                  type: string
+                slot:
+                  type: number
+                mediaPlayer:
+                  type: number
+                dsk:
+                  type: number
+                autoOnAir:
+                  type: boolean
+                transition:
+                  type: string
+                  enum: [cut, auto, tie]
+      responses:
+        "200":
+          description: Still uploaded and DSK configured
+  /api/v1/graphics/stream/start:
+    post:
+      summary: Start fffleet or local FFmpeg live stream
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode]
+              properties:
+                mode:
+                  type: string
+                  enum: [single-chroma, single-luma, dual-fill-key]
+                outputs:
+                  type: object
+      responses:
+        "200":
+          description: Stream started
+  /api/v1/graphics/stream/stop:
+    post:
+      summary: Stop active live stream
+      responses:
+        "200":
+          description: Stream stopped
