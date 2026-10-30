@@ -1,6 +1,7 @@
 import type { ActiveGraphicsStore } from "../store/active-graphics-store.js";
 import type { GraphicsEventBroker } from "../events.js";
 import type { AtemAdapterClient } from "../switcher/piswitch-client.js";
+import { formatSpeakerStrap, resolveSpeakerFromRundown } from "./speaker-resolver.js";
 
 export interface GatewayClientOptions {
   gatewayUrl: string;
@@ -54,7 +55,9 @@ export class GatewayClient {
 
     while (!signal.aborted) {
       try {
-        const url = `${this.gatewayUrl}/api/v1/events?types=action,transcript,rundown`;
+        // We listen to action and rundown events.
+        // Names are NEVER inferred from transcription events alone.
+        const url = `${this.gatewayUrl}/api/v1/events?types=action,rundown`;
         this.logger?.info?.(`Connecting to Gateway SSE: ${url}`);
 
         const response = await this.fetchFn(url, {
@@ -123,8 +126,8 @@ export class GatewayClient {
 
       if (type === "action") {
         this.handleActionEvent(eventData);
-      } else if (type === "transcript") {
-        this.handleTranscriptEvent(eventData);
+      } else if (type === "rundown") {
+        this.handleRundownEvent(eventData);
       }
     } catch {
       // ignore parse error
@@ -147,10 +150,20 @@ export class GatewayClient {
       this.activeStore.hide(params.instanceId);
     } else if (action === "graphic.bindings" && params.bindings && typeof params.bindings === "object") {
       this.activeStore.updateBindings(params.bindings);
-    } else if (action === "lowerthird.set") {
-      const bindings: Record<string, string> = {};
-      if (params.speaker) bindings.speaker = String(params.speaker);
-      if (params.title) bindings.title = String(params.title);
+    } else if (action === "lowerthird.set" || action === "speaker.set") {
+      // Rule: If name is not present, ONLY role can be displayed!
+      const strap = formatSpeakerStrap({
+        role: params.role,
+        name: params.name || params.speaker,
+        title: params.title,
+      });
+
+      const bindings: Record<string, string> = {
+        speaker: strap.speaker,
+        title: strap.title,
+        role: strap.role,
+      };
+
       this.activeStore.updateBindings(bindings);
       if (params.show !== false) {
         this.activeStore.show("lower-third-speaker", {
@@ -168,13 +181,33 @@ export class GatewayClient {
     }
   }
 
-  private handleTranscriptEvent(data: any): void {
-    // Check if transcript event contains speaker information
-    const events = Array.isArray(data?.events) ? data.events : [];
-    for (const ev of events) {
-      if (ev?.speaker && typeof ev.speaker === "string" && ev.speaker.trim()) {
-        this.activeStore.updateBindings({ speaker: ev.speaker.trim() });
-      }
+  private handleRundownEvent(data: any): void {
+    if (!data || typeof data !== "object") return;
+
+    // RundownStatusSnapshot contains currentItem and variables
+    const currentItem = data.currentItem || data.activeItem || null;
+    const variables = (data.variables && typeof data.variables === "object") ? data.variables : {};
+
+    const strap = resolveSpeakerFromRundown(currentItem, variables);
+    if (!strap) return;
+
+    // Update bindings strictly following: if name is absent, speaker = role!
+    this.activeStore.updateBindings({
+      speaker: strap.speaker,
+      title: strap.title,
+      role: strap.role,
+    });
+
+    // If rundown indicates lower-third should show on cue (e.g. cue_fired or action)
+    if (data.showGraphic || variables.auto_show_strap === "true" || variables.auto_show_lowerthird === "true") {
+      this.activeStore.show("lower-third-speaker", {
+        bindings: {
+          speaker: strap.speaker,
+          title: strap.title,
+          role: strap.role,
+        },
+        autoHideMs: 7000,
+      });
     }
   }
 }
