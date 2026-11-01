@@ -36,6 +36,7 @@
   ],
   "pi": {
     "service": "pigraphics",
+    "layer": "Layer 2: Media pipeline",
     "displayName": "pigraphics",
     "port": 3201,
     "healthEndpoint": "/health",
