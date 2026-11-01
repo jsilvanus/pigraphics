@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const BASE_URL = (process.env.PIGRAPHICS_URL || "http://127.0.0.1:3107").replace(/\/+$/, "");
+const BASE_URL = (process.env.PIGRAPHICS_URL || "http://127.0.0.1:3201").replace(/\/+$/, "");
 
 async function fetchJson(path: string, options: RequestInit = {}): Promise<any> {
   const url = `${BASE_URL}${path}`;

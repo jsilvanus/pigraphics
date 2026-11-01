@@ -37,7 +37,7 @@
   "pi": {
     "service": "pigraphics",
     "displayName": "pigraphics",
-    "port": 3107,
+    "port": 3201,
     "healthEndpoint": "/health",
     "envPortVar": "PIGRAPHICS_PORT"
   }

@@ -16,7 +16,7 @@ export interface Config {
 }
 
 export function loadConfig(env = process.env): Config {
-  const port = Number(env.PIGRAPHICS_PORT) || 3107;
+  const port = Number(env.PIGRAPHICS_PORT) || 3201;
   const host = env.PIGRAPHICS_HOST || "0.0.0.0";
   const pageBaseUrl = (env.PIGRAPHICS_PAGE_BASE_URL || `http://localhost:${port}`).replace(/\/+$/, "");
   const dataDir = resolve(process.cwd(), env.PIGRAPHICS_DATA_DIR || "data");
@@ -30,8 +30,8 @@ export function loadConfig(env = process.env): Config {
     dataDir,
     templatesDir,
     assetsDir,
-    gatewayUrl: (env.PIGATEWAY_URL || "http://localhost:3100").replace(/\/+$/, ""),
-    piswitchUrl: (env.PISWITCH_URL || "http://localhost:3106").replace(/\/+$/, ""),
+    gatewayUrl: (env.PIGATEWAY_URL || "http://localhost:3000").replace(/\/+$/, ""),
+    piswitchUrl: (env.PISWITCH_URL || "http://localhost:3103").replace(/\/+$/, ""),
     fffleetUrl: env.FFFLEET_URL ? env.FFFLEET_URL.replace(/\/+$/, "") : undefined,
     fffleetToken: env.FFFLEET_TOKEN || undefined,
     rtmpBase: (env.GRAPHICS_RTMP_BASE || "rtmp://localhost:1935/live").replace(/\/+$/, ""),

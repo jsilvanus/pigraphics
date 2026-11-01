@@ -10,10 +10,10 @@ Broadcast graphics engine, composition microservice, and CLI for the **Pi Ecosys
 
 ```mermaid
 graph TD
-    GATEWAY["pigateway (:3100)<br/>Central Event Bus"] -->|SSE Actions & Transcripts| PIGRAPHICS["pigraphics (:3107)<br/>Graphics Service & CLI"]
+    GATEWAY["pigateway (:3000)<br/>Central Event Bus"] -->|SSE Actions & Transcripts| PIGRAPHICS["pigraphics (:3201)<br/>Graphics Service & CLI"]
     
     subgraph Methods["Three Graphics Output Methods"]
-        M1["Method 1: ATEM Stills & Keyers<br/>(via piswitch :3106)"]
+        M1["Method 1: ATEM Stills & Keyers<br/>(via piswitch :3103)"]
         M2["Method 2: Single Stream (Chroma/Luma)<br/>(fffleet worker -> RTMP/HDMI)"]
         M3["Method 3: Dual Stream (Fill & Key)<br/>(fffleet worker -> 2x HDMI / SDI)"]
     end
@@ -27,7 +27,7 @@ graph TD
     M3 --> OPERATOR["Operator PC / Sanctuary Matrix"]
 ```
 
-- **Port**: `3107` (adjacent to `pitube` :3105, `piswitch` :3106, and `pispace` :3108).
+- **Port**: `3201` (adjacent to `pitube` :3500, `piswitch` :3103, and `pispace` :3203).
 - **Central Event Bus**: Listens to `pigateway` SSE (`/api/v1/events`) for `graphic.show`, `graphic.hide`, `lowerthird.set`, rundown cues, and speaker updates.
 - **Internal SSE stream**: `GET /api/v1/graphics/events` pushes state changes and bindings to running display pages and UI consoles.
 
@@ -122,11 +122,11 @@ pigraphics stream stop
 Set environment variables in `.env` or system environment:
 
 ```env
-PIGRAPHICS_PORT=3107
+PIGRAPHICS_PORT=3201
 PIGRAPHICS_HOST=0.0.0.0
 PIGRAPHICS_DATA_DIR=data
-PIGATEWAY_URL=http://localhost:3100
-PISWITCH_URL=http://localhost:3106
+PIGATEWAY_URL=http://localhost:3000
+PISWITCH_URL=http://localhost:3103
 FFFLEET_URL=http://localhost:5000
 FFFLEET_TOKEN=
 GRAPHICS_RTMP_BASE=rtmp://localhost:1935/live
