@@ -15,7 +15,7 @@ describe("PiGraphics API Integration", () => {
     const tempDir = mkdtempSync(join(tmpdir(), "pigraphics-api-"));
     try {
       const config = loadConfig({
-        PIGRAPHICS_PORT: "3107",
+        PIGRAPHICS_PORT: "3201",
         PIGRAPHICS_DATA_DIR: tempDir,
       });
 

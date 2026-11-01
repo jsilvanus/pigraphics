@@ -1,6 +1,7 @@
 {
   "name": "pigraphics",
   "version": "0.1.0",
+  "packageManager": "pnpm@11.23.0",
   "description": "Broadcast graphics engine and coordination service for the Pi Ecosystem: HTML templates, CSS animations, ATEM keying, and live fffleet Fill/Key streaming",
   "private": true,
   "type": "module",
@@ -32,5 +33,13 @@
     "dist",
     "bin",
     "openapi"
-  ]
+  ],
+  "pi": {
+    "service": "pigraphics",
+    "layer": "Layer 2: Media pipeline",
+    "displayName": "pigraphics",
+    "port": 3201,
+    "healthEndpoint": "/health",
+    "envPortVar": "PIGRAPHICS_PORT"
+  }
 }

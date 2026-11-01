@@ -78,7 +78,7 @@ describe("GatewayClient & Speaker Resolution", () => {
     };
 
     const client = new GatewayClient({
-      gatewayUrl: "http://localhost:3100",
+      gatewayUrl: "http://localhost:3000",
       activeStore,
       eventBroker: broker,
       fetchFn: mockFetch,

@@ -38,7 +38,7 @@ describe("Renderer", () => {
 
   it("compiles a template into HTML with broadcast CSS keyframes and SSE script", () => {
     const html = compileTemplateToHtml(sampleTemplate, {
-      serverUrl: "http://localhost:3107",
+      serverUrl: "http://localhost:3201",
       bindings: { speaker: "Juha Itäleino" },
     });
 
@@ -70,7 +70,7 @@ describe("Renderer", () => {
         { instance: instance2, template: sampleTemplate },
       ],
       {
-        serverUrl: "http://localhost:3107",
+        serverUrl: "http://localhost:3201",
       }
     );
 
