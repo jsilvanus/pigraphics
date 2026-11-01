@@ -138,14 +138,14 @@ GRAPHICS_RTMP_BASE=rtmp://localhost:1935/live
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Run unit and integration tests
-npm test
+pnpm test
 
 # Build TypeScript
-npm run build
+pnpm run build
 
 # Start dev server with watch
-npm run dev
+pnpm run dev
 ```
