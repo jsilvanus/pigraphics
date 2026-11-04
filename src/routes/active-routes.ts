@@ -65,5 +65,76 @@ export const activeRoutes = (
       activeStore.updateBindings(bindings);
       return reply.code(200).send({ ok: true, bindings: activeStore.getBindings() });
     });
+
+    // Upstream-compatible convenience endpoints for picontrol-mcp
+    app.get("/api/v1/graphics", async () => {
+      return {
+        active: activeStore.getActive(),
+        bindings: activeStore.getBindings(),
+      };
+    });
+
+    app.post<{
+      Body: {
+        action: "show" | "hide";
+        templateId?: string;
+        title?: string;
+        subtitle?: string;
+        durationMs?: number;
+      };
+    }>("/api/v1/graphics/lower-third", async (req, reply) => {
+      const { action, templateId, title, subtitle, durationMs } = req.body || {};
+      if (action === "hide") {
+        for (const inst of activeStore.getActive()) {
+          if (inst.templateId.includes("lower-third") || inst.templateId.includes("speaker")) {
+            activeStore.hide(inst.instanceId);
+          }
+        }
+        return reply.code(200).send({ ok: true });
+      }
+
+      const targetTemplate = templateId || "lower-third-speaker";
+      const bindings: Record<string, string> = {};
+      if (title) bindings["speaker"] = title;
+      if (subtitle) bindings["title"] = subtitle;
+
+      const instance = activeStore.show(targetTemplate, {
+        bindings,
+        autoHideMs: durationMs,
+      });
+      return reply.code(200).send({ ok: true, instance });
+    });
+
+    app.post<{
+      Body: {
+        action: "show" | "hide";
+        type?: string;
+        content?: string;
+      };
+    }>("/api/v1/graphics/overlay", async (req, reply) => {
+      const { action, type, content } = req.body || {};
+      if (action === "hide") {
+        for (const inst of activeStore.getActive()) {
+          if (inst.templateId.includes("overlay") || inst.templateId.includes("scripture") || inst.templateId.includes("hymn")) {
+            activeStore.hide(inst.instanceId);
+          }
+        }
+        return reply.code(200).send({ ok: true });
+      }
+
+      let templateId = "scripture-reading";
+      const bindings: Record<string, string> = {};
+      if (type === "hymn") {
+        templateId = "hymn-ticker";
+        bindings["hymn_text"] = content || "";
+      } else {
+        bindings["scripture_text"] = content || "";
+      }
+
+      const instance = activeStore.show(templateId, {
+        bindings,
+      });
+      return reply.code(200).send({ ok: true, instance });
+    });
   };
 };
