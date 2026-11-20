@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import type { GraphicTemplate } from "../types/index.js";
 import { compileTemplateToHtml } from "./html-compiler.js";
@@ -7,11 +8,64 @@ export interface StillRenderOptions {
   height?: number | undefined;
   ffmpegPath?: string | undefined;
   bindings?: Record<string, string> | undefined;
+  cache?: boolean | undefined;
+}
+
+const DEFAULT_STILL_CACHE_MAX_ENTRIES = 32;
+const stillRgbaCache = new Map<string, Buffer>();
+let cacheHits = 0;
+let cacheMisses = 0;
+
+function getMaxCacheEntries(): number {
+  const parsed = Number(process.env.PIGRAPHICS_STILL_CACHE_MAX);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_STILL_CACHE_MAX_ENTRIES;
+}
+
+function getCachedRgba(key: string): Buffer | undefined {
+  const hit = stillRgbaCache.get(key);
+  if (hit !== undefined) {
+    stillRgbaCache.delete(key);
+    stillRgbaCache.set(key, hit);
+    cacheHits++;
+    return hit;
+  }
+  cacheMisses++;
+  return undefined;
+}
+
+function setCachedRgba(key: string, buffer: Buffer): void {
+  const maxEntries = getMaxCacheEntries();
+  if (maxEntries <= 0) return;
+  if (stillRgbaCache.has(key)) {
+    stillRgbaCache.delete(key);
+  } else if (stillRgbaCache.size >= maxEntries) {
+    const oldestKey = stillRgbaCache.keys().next().value;
+    if (oldestKey !== undefined) stillRgbaCache.delete(oldestKey);
+  }
+  stillRgbaCache.set(key, buffer);
+}
+
+/** Clears the in-memory still RGBA cache and resets hit/miss counters. */
+export function clearStillRgbaCache(): void {
+  stillRgbaCache.clear();
+  cacheHits = 0;
+  cacheMisses = 0;
+}
+
+/** Returns current in-memory still RGBA cache statistics. */
+export function getStillRgbaCacheStats(): { size: number; maxEntries: number; hits: number; misses: number } {
+  return {
+    size: stillRgbaCache.size,
+    maxEntries: getMaxCacheEntries(),
+    hits: cacheHits,
+    misses: cacheMisses,
+  };
 }
 
 /**
  * Renders an HTML page or template to a raw RGBA buffer (width * height * 4 bytes)
  * suitable for ATEM media pool still uploads (`piswitch.uploadStill`).
+ * Results are cached in an in-memory LRU cache keyed by SHA-256 of (html, width, height).
  */
 export async function renderHtmlToRgba(
   html: string,
@@ -20,11 +74,25 @@ export async function renderHtmlToRgba(
   const width = options.width ?? 1920;
   const height = options.height ?? 1080;
   const ffmpegPath = options.ffmpegPath || process.env.FFMPEG_PATH || "ffmpeg";
+  const cacheKey =
+    options.cache !== false
+      ? createHash("sha256").update("html:").update(String(width)).update("x").update(String(height)).update(":").update(html).digest("hex")
+      : null;
+
+  if (cacheKey) {
+    const cached = getCachedRgba(cacheKey);
+    if (cached) return cached;
+  }
+
+  const finish = (buf: Buffer): Buffer => {
+    if (cacheKey) setCachedRgba(cacheKey, buf);
+    return buf;
+  };
 
   // Use ffmpeg with lavfi or piped image
   // If chromium is available via playwright, playwright takes a screenshot and pipes to ffmpeg
   // Otherwise, we can synthesize via ffmpeg drawtext/lavfi or software SVG rasterizer
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     // We create a blank RGBA canvas buffer as base or use ffmpeg
     // Check if Playwright is installed:
     const loadPlaywright = new Function('return import("playwright-core")') as () => Promise<any>;
@@ -63,14 +131,14 @@ export async function renderHtmlToRgba(
             ff.stdout.on("data", (d) => chunks.push(d));
             ff.on("close", (code) => {
               if (code === 0) {
-                resolve(Buffer.concat(chunks));
+                resolve(finish(Buffer.concat(chunks)));
               } else {
                 // fallback
-                resolve(createSyntheticRgbaStill(width, height));
+                resolve(finish(createSyntheticRgbaStill(width, height)));
               }
             });
             ff.on("error", () => {
-              resolve(createSyntheticRgbaStill(width, height));
+              resolve(finish(createSyntheticRgbaStill(width, height)));
             });
             ff.stdin.write(pngBuffer);
             ff.stdin.end();
@@ -79,10 +147,10 @@ export async function renderHtmlToRgba(
             await browser.close().catch(() => {});
           }
         }
-        resolve(createSyntheticRgbaStill(width, height));
+        resolve(finish(createSyntheticRgbaStill(width, height)));
       })
       .catch(() => {
-        resolve(createSyntheticRgbaStill(width, height));
+        resolve(finish(createSyntheticRgbaStill(width, height)));
       });
   });
 }
@@ -110,6 +178,23 @@ export async function pngBufferToRgba(
   height = 1080,
   ffmpegPath = process.env.FFMPEG_PATH || "ffmpeg"
 ): Promise<Buffer> {
+  const cacheKey = createHash("sha256")
+    .update("png:")
+    .update(String(width))
+    .update("x")
+    .update(String(height))
+    .update(":")
+    .update(pngBuffer)
+    .digest("hex");
+
+  const cached = getCachedRgba(cacheKey);
+  if (cached) return cached;
+
+  const finish = (buf: Buffer): Buffer => {
+    setCachedRgba(cacheKey, buf);
+    return buf;
+  };
+
   return new Promise((resolve) => {
     try {
       const ff = spawn(ffmpegPath, [
@@ -127,18 +212,18 @@ export async function pngBufferToRgba(
       ff.stdout.on("data", (d) => chunks.push(d));
       ff.on("close", (code) => {
         if (code === 0 && chunks.length > 0) {
-          resolve(Buffer.concat(chunks));
+          resolve(finish(Buffer.concat(chunks)));
         } else {
-          resolve(createSyntheticRgbaStill(width, height));
+          resolve(finish(createSyntheticRgbaStill(width, height)));
         }
       });
       ff.on("error", () => {
-        resolve(createSyntheticRgbaStill(width, height));
+        resolve(finish(createSyntheticRgbaStill(width, height)));
       });
       ff.stdin.write(pngBuffer);
       ff.stdin.end();
     } catch {
-      resolve(createSyntheticRgbaStill(width, height));
+      resolve(finish(createSyntheticRgbaStill(width, height)));
     }
   });
 }
